@@ -49,7 +49,7 @@ export function mapNEA<T, U>(nea: NonEmptyArray<T>, fn: (x: T) => U): NonEmptyAr
  * @param nea - The input `NonEmptyArray<T>`.
  * @returns The last element.
  */
-export function last<T>(nea: NonEmptyArray<T>): T {
+export function lastNEA<T>(nea: NonEmptyArray<T>): T {
   return nea.rest.length > 0 ? nea.rest[nea.rest.length - 1] : nea.first;
 }
 
@@ -59,7 +59,7 @@ export function last<T>(nea: NonEmptyArray<T>): T {
  * @param nea - The input `NonEmptyArray<T>`.
  * @returns The length (always ≥ 1).
  */
-export function length<T>(nea: NonEmptyArray<T>): number {
+export function lengthNEA<T>(nea: NonEmptyArray<T>): number {
   return 1 + nea.rest.length;
 }
 
@@ -69,7 +69,7 @@ export function length<T>(nea: NonEmptyArray<T>): number {
  * @param nea - The input `NonEmptyArray<T>`.
  * @returns The first element.
  */
-export function head<T>(nea: NonEmptyArray<T>): T {
+export function headNEA<T>(nea: NonEmptyArray<T>): T {
   return nea.first;
 }
 
@@ -79,7 +79,7 @@ export function head<T>(nea: NonEmptyArray<T>): T {
  * @param nea - The input `NonEmptyArray<T>`.
  * @returns An array containing the tail elements.
  */
-export function tail<T>(nea: NonEmptyArray<T>): T[] {
+export function tailNEA<T>(nea: NonEmptyArray<T>): T[] {
   return nea.rest;
 }
 
@@ -90,7 +90,7 @@ export function tail<T>(nea: NonEmptyArray<T>): T[] {
  * @param item - The item to append.
  * @returns A new `NonEmptyArray<T>` with the item added at the end.
  */
-export function append<T>(nea: NonEmptyArray<T>, item: T): NonEmptyArray<T> {
+export function appendNEA<T>(nea: NonEmptyArray<T>, item: T): NonEmptyArray<T> {
   return {
     first: nea.first,
     rest: [...nea.rest, item]
@@ -104,7 +104,7 @@ export function append<T>(nea: NonEmptyArray<T>, item: T): NonEmptyArray<T> {
  * @param item - The item to prepend.
  * @returns A new `NonEmptyArray<T>` with the item added at the start.
  */
-export function prepend<T>(nea: NonEmptyArray<T>, item: T): NonEmptyArray<T> {
+export function prependNEA<T>(nea: NonEmptyArray<T>, item: T): NonEmptyArray<T> {
   return {
     first: item,
     rest: [nea.first, ...nea.rest]

@@ -162,14 +162,17 @@ export function createEmailE(value: string): Result<EmailError, Email> {
 ```ts
 import {
   // Maybe
-  Maybe, Just, Nothing, just, nothing, maybe, fromMaybe, fromResult, mapMaybe,
+  Maybe, Just, Nothing, just, nothing, maybe,
+  fromMaybe, fromResult, mapMaybe,
 
   // Result
-  Result, Ok, Err, ok, err, mapResult, mapResultErr, fromOk, fromErr, partitionResult,
+  Result, Ok, Err, ok, err, mapResult, mapResultErr,
+  fromOk, fromErr, partitionResult,
 
   // RemoteData
   RemoteData, NotAsked, Loading, Failure, Success,
-  notAsked, loading, failure, success, mapRD, mapRDError, fromFailure, fromSuccess,
+  notAsked, loading, failure, success, mapRD,
+  mapRDError, fromFailure, fromSuccess,
 
   // RemotePaginate
   RemotePaginate, Paginate, PaginateStatus,
@@ -183,7 +186,8 @@ import {
   Tuple, tuple, fst, snd, mapFst, mapSnd,
 
   // NonEmptyArray
-  NonEmptyArray, nonEmptyArray, toArray, mapNEA, last, length, head, tail, append, prepend, flatMap,
+  NonEmptyArray, nonEmptyArray, toArray, mapNEA, lastNEA,
+  lengthNEA, headNEA, tailNEA, appendNEA, prependNEA,
 
   // JSONValue
   JsonValue, parseJsonValue,
