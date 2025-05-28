@@ -1,16 +1,18 @@
 {
   "name": "elytra-ts",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Base/Pure types for your projects.",
   "scripts": {
     "build": "tsc",
     "tsc": "tsc --noEmit",
     "lint": "eslint . --ext .ts"
   },
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.js",
+      "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
   },
