@@ -136,8 +136,9 @@ const result = parseJsonValue('{ "foo": 1 }');
 Build opaque types for safety.
 
 ```ts
+// Email.ts
 import { Opaque, err, ok, Result} from 'elytra-ts';
-const emailKey: unique symbol = Symbol();
+const emailKey: unique symbol = Symbol(); // Do NOT export this key
 type Email = Opaque<string, typeof emailKey>;
 type EmailError = 'INVALID_EMAIL';
 export function createEmailE(value: string): Result<EmailError, Email> {
@@ -153,6 +154,10 @@ export function createEmailE(value: string): Result<EmailError, Email> {
     return err('INVALID_EMAIL');
   }
 }
+
+// Other.ts
+import { createEmailE, Email } from './Email';
+const emailE = createEmailE('validEmail@example.com')
 ```
 
 ---
