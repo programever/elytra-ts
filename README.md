@@ -137,15 +137,16 @@ Build opaque types for safety.
 
 ```ts
 // Email.ts
-import { Opaque, err, ok, Result} from 'elytra-ts';
+import { Opaque, jsonValueCreate, err, ok, Result} from 'elytra-ts';
+
 const emailKey: unique symbol = Symbol(); // Do NOT export this key
 type Email = Opaque<string, typeof emailKey>;
 type EmailError = 'INVALID_EMAIL';
-export function createEmailE(value: string): Result<EmailError, Email> {
-  const isValid = validateEmail(value);
-  if (isValid === true) {
+
+export function createEmail(value: string): Result<EmailError, Email> {
+  if (validateEmail(value)) {
     const opaqueType = {
-      [key]: value,
+      [emailKey]: value,
       unwrap: () => value,
       toJSON: () => value
     };
@@ -155,9 +156,18 @@ export function createEmailE(value: string): Result<EmailError, Email> {
   }
 }
 
+export function createEmailWithHelper(value: string): Result<EmailError, Email> {
+  if (validateEmail(value)) {
+    return ok(jsonValueCreate<string, typeof emailKey>(emailKey)(value));
+  } else {
+    return err('INVALID_EMAIL');
+  }
+}
+
 // Other.ts
-import { createEmailE, Email } from './Email';
-const emailE = createEmailE('validEmail@example.com')
+import { createEmail, Email } from './Email';
+
+const emailResult = createEmail('validEmail@example.com')
 ```
 
 ---

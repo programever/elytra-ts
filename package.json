@@ -1,6 +1,6 @@
 {
   "name": "elytra-ts",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Base/Pure types for your projects.",
   "scripts": {
     "build": "tsc",
@@ -16,9 +16,10 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
-  "dependencies": {
-  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.10.5",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
