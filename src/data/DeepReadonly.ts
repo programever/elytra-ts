@@ -20,14 +20,14 @@
  * //     readonly tags: readonly string[];
  * //   };
  * // }
- * type ReadonlyConfig = Readonly<Config>;
+ * type ReadonlyConfig = DeepReadonly<Config>;
  */
-export type Readonly<T> = T extends (...args: unknown[]) => unknown
+export type DeepReadonly<T> = T extends (...args: never[]) => unknown
   ? T // Leave functions unchanged
   : T extends readonly [infer _A, ...infer _B]
-    ? { readonly [K in keyof T]: Readonly<T[K]> } // Handle tuples
+    ? { readonly [K in keyof T]: DeepReadonly<T[K]> } // Handle tuples
     : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<Readonly<U>> // Handle arrays
+      ? ReadonlyArray<DeepReadonly<U>> // Handle arrays
       : T extends object
-        ? { readonly [K in keyof T]: Readonly<T[K]> } // Handle objects
+        ? { readonly [K in keyof T]: DeepReadonly<T[K]> } // Handle objects
         : T; // Leave primitives unchanged

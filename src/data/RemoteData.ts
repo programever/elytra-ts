@@ -68,24 +68,24 @@ export function success<E, T>(data: T): RemoteData<E, T> {
 /**
  * Transforms the `Success` value of a `RemoteData`, leaving other states unchanged.
  *
- * @param fn - A function to transform the success value.
  * @param remoteData - The input `RemoteData`.
+ * @param fn - A function to transform the success value.
  * @returns A new `RemoteData` with the transformed success value.
  */
-export function mapRD<E, T, U>(fn: (t: T) => U, remoteData: RemoteData<E, T>): RemoteData<E, U> {
+export function mapRD<E, T, U>(remoteData: RemoteData<E, T>, fn: (t: T) => U): RemoteData<E, U> {
   return remoteData._t === 'Success' ? { ...remoteData, data: fn(remoteData.data) } : remoteData;
 }
 
 /**
  * Transforms the `Failure` error value of a `RemoteData`, leaving other states unchanged.
  *
- * @param fn - A function to transform the error value.
  * @param remoteData - The input `RemoteData`.
+ * @param fn - A function to transform the error value.
  * @returns A new `RemoteData` with the transformed error, if in failure state.
  */
 export function mapRDError<E, X, T>(
-  fn: (e: E) => X,
-  remoteData: RemoteData<E, T>
+  remoteData: RemoteData<E, T>,
+  fn: (e: E) => X
 ): RemoteData<X, T> {
   return remoteData._t === 'Failure' ? { ...remoteData, error: fn(remoteData.error) } : remoteData;
 }

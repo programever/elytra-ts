@@ -4,8 +4,8 @@
  * `first` is the first element, and `rest` contains any additional elements (may be empty).
  */
 export type NonEmptyArray<T> = {
-  first: T;
-  rest: T[];
+  readonly first: T;
+  readonly rest: readonly T[];
 };
 
 /**
@@ -15,7 +15,7 @@ export type NonEmptyArray<T> = {
  * @param rest - An optional array of additional elements.
  * @returns A `NonEmptyArray<T>`.
  */
-export function nonEmptyArray<T>(first: T, rest: T[] = []): NonEmptyArray<T> {
+export function nonEmptyArray<T>(first: T, rest: readonly T[] = []): NonEmptyArray<T> {
   return { first, rest };
 }
 
@@ -25,7 +25,7 @@ export function nonEmptyArray<T>(first: T, rest: T[] = []): NonEmptyArray<T> {
  * @param nea - The non-empty array to convert.
  * @returns A standard array containing all elements.
  */
-export function toArray<T>(nea: NonEmptyArray<T>): T[] {
+export function toArrayNEA<T>(nea: NonEmptyArray<T>): T[] {
   return [nea.first, ...nea.rest];
 }
 
@@ -50,7 +50,10 @@ export function mapNEA<T, U>(nea: NonEmptyArray<T>, fn: (x: T) => U): NonEmptyAr
  * @returns The last element.
  */
 export function lastNEA<T>(nea: NonEmptyArray<T>): T {
-  return nea.rest.length > 0 ? nea.rest[nea.rest.length - 1] : nea.first;
+  const { rest } = nea;
+  // Guarded above, so the index is always in bounds; the cast is needed only
+  // because `noUncheckedIndexedAccess` cannot prove it.
+  return rest.length === 0 ? nea.first : (rest[rest.length - 1] as T);
 }
 
 /**
@@ -79,7 +82,7 @@ export function headNEA<T>(nea: NonEmptyArray<T>): T {
  * @param nea - The input `NonEmptyArray<T>`.
  * @returns An array containing the tail elements.
  */
-export function tailNEA<T>(nea: NonEmptyArray<T>): T[] {
+export function tailNEA<T>(nea: NonEmptyArray<T>): readonly T[] {
   return nea.rest;
 }
 

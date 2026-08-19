@@ -21,3 +21,6 @@ yarn-error.log*
 
 # Css type
 *.d.ts
+
+# test build output
+dist-test/

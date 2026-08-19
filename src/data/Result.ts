@@ -105,13 +105,16 @@ export function partitionResult<E, T>(
   readonly oks: T[];
   readonly errs: E[];
 } {
-  return results.reduce(
-    (accum: { oks: T[]; errs: E[] }, result) => {
-      const { oks, errs } = accum;
-      return result._t === 'Ok'
-        ? { oks: [...oks, result.value], errs }
-        : { oks, errs: [...errs, result.error] };
-    },
-    { oks: [], errs: [] }
-  );
+  const oks: T[] = [];
+  const errs: E[] = [];
+
+  for (const result of results) {
+    if (result._t === 'Ok') {
+      oks.push(result.value);
+    } else {
+      errs.push(result.error);
+    }
+  }
+
+  return { oks, errs };
 }

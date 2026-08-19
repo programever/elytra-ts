@@ -1,14 +1,21 @@
 {
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": "./tsconfig.json",
+    "project": [
+      "./tsconfig.json",
+      "./tsconfig.test.json"
+    ],
     "tsconfigRootDir": "./",
     "sourceType": "module",
     "createDefaultProgram": true
   },
   "settings": {
-    "import/extensions": [".ts"],
-    "import/resolver": { "typescript": {} }
+    "import/extensions": [
+      ".ts"
+    ],
+    "import/resolver": {
+      "typescript": {}
+    }
   },
   "extends": [
     "plugin:import/recommended",
@@ -36,8 +43,17 @@
     "no-console": [
       "warn",
       {
-        "allow": ["error", "info"]
+        "allow": [
+          "error",
+          "info"
+        ]
       }
     ]
-  }
+  },
+  "ignorePatterns": [
+    "dist",
+    "dist-test",
+    "node_modules",
+    "scripts"
+  ]
 }

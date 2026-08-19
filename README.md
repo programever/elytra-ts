@@ -10,7 +10,7 @@
 - 🔁 Utilities for working with paginated and async state
 - 🔒 Deep readonly support for immutable structures
 - 🧩 Composable tuple and non-empty array helpers
-- ⚡ Zero dependencies, fully tree-shakeable
+- ⚡ Zero dependencies, dual ESM/CJS builds, tree-shakeable
 
 ---
 
@@ -36,10 +36,11 @@ yarn add elytra-ts
 Represents a value that may or may not exist.
 
 ```ts
-import { Maybe, maybe, mapMaybe } from 'elytra-ts';
+import { Maybe, maybe, mapMaybe, fromMaybe } from 'elytra-ts';
 
 const name: Maybe<string> = maybe(getName());
 const upper = mapMaybe(name, (s) => s.toUpperCase());
+const display = fromMaybe(upper, 'ANONYMOUS'); // string, never null
 ```
 
 ---
@@ -65,9 +66,10 @@ function parseJson(s: string): Result<string, unknown> {
 Represents async/remote state: NotAsked, Loading, Failure, Success.
 
 ```ts
-import { RemoteData, loading } from 'elytra-ts';
+import { RemoteData, loading, mapRD } from 'elytra-ts';
 
 const users: RemoteData<string, User[]> = loading();
+const names = mapRD(users, (us) => us.map((u) => u.name)); // (data, fn)
 ```
 
 ---
@@ -78,18 +80,24 @@ A paginated wrapper around `RemoteData`, customizable with user-defined status a
 ```ts
 import { RemotePaginate, createRP } from 'elytra-ts';
 
-const page = createRP([item1], { _t: 'Loaded' }, { total: 10 });
+// Annotate the binding: `E` appears in no parameter, so it cannot be inferred
+// from the arguments (the same is true of `notAsked()` and `loading()`).
+const page: RemotePaginate<string, Item, { total: number }> = createRP(
+  [item1],
+  { _t: 'Loaded' },
+  { total: 10 }
+);
 ```
 
 ---
 
-### 🔹 `Readonly<T>`
-A deep-readonly recursive type utility.
+### 🔹 `DeepReadonly<T>`
+A deep-readonly recursive type utility. Functions are left callable at any arity.
 
 ```ts
-import { Readonly } from 'elytra-ts';
+import { DeepReadonly } from 'elytra-ts';
 
-type Config = Readonly<{
+type Config = DeepReadonly<{
   user: { name: string; preferences: string[] };
 }>;
 ```
@@ -113,10 +121,11 @@ snd(t); // 'a'
 An array-like structure that guarantees at least one element at the type level.
 
 ```ts
-import { nonEmptyArray, mapNEA } from 'elytra-ts';
+import { nonEmptyArray, mapNEA, toArrayNEA } from 'elytra-ts';
 
 const nea = nonEmptyArray(1, [2, 3]);
-mapNEA(nea, (x) => x * 2); // [2, 4, 6]
+const doubled = mapNEA(nea, (x) => x * 2); // { first: 2, rest: [4, 6] }
+toArrayNEA(doubled); // [2, 4, 6]
 ```
 
 ---
@@ -145,7 +154,7 @@ export function createEmailE(value: string): Result<EmailError, Email> {
   const isValid = validateEmail(value);
   if (isValid === true) {
     const opaqueType = {
-      [key]: value,
+      [emailKey]: value,
       unwrap: () => value,
       toJSON: () => value
     };
@@ -184,14 +193,14 @@ import {
   createRP, mapRPValue, mapRPMeta, mapRPStatus,
   appendRP, prependRP,
 
-  // Readonly
-  Readonly,
+  // DeepReadonly
+  DeepReadonly,
 
   // Tuple
   Tuple, tuple, fst, snd, mapFst, mapSnd,
 
   // NonEmptyArray
-  NonEmptyArray, nonEmptyArray, toArray, mapNEA, lastNEA,
+  NonEmptyArray, nonEmptyArray, toArrayNEA, mapNEA, lastNEA,
   lengthNEA, headNEA, tailNEA, appendNEA, prependNEA,
 
   // JSONValue
@@ -213,14 +222,44 @@ elytra-ts is built for developers who value:
 - Readable, intention-revealing code
 - Full editor support (hover, docs, autocomplete)
 
-No runtime code. No classes. Just types and pure helpers.
+No classes, no inheritance, no hidden state — just types and small pure functions.
 
 ---
+
+## ⚠️ Migrating to 0.2.0
+
+0.2.0 fixes several bugs that required breaking changes. All of them are mechanical:
+
+| 0.1.x | 0.2.0 | Why |
+|---|---|---|
+| `Readonly<T>` | `DeepReadonly<T>` | The old name shadowed TypeScript's built-in `Readonly` on import. The type also silently reduced any function taking **one or more arguments** to `{}`; it now leaves functions callable at any arity. |
+| `fromMaybe(m)` | `fromMaybe(m, default)` | It used to be an identity function. It now unwraps with a fallback, matching what the name means everywhere else. |
+| `mapRD(fn, data)` | `mapRD(data, fn)` | Argument order now matches `mapResult`, `mapMaybe` and every `mapRP*`. |
+| `mapRDError(fn, data)` | `mapRDError(data, fn)` | As above. |
+| `toArray(nea)` | `toArrayNEA(nea)` | Matches the `NEA` suffix used by the other eight helpers. |
+| `NonEmptyArray.first` / `.rest` mutable | both `readonly` | Consistent with the rest of the library. |
+
+Also fixed, with no API change:
+
+- `Opaque` values built by `jsonValueCreate` used `this` internally, so a destructured `unwrap` threw a `TypeError` and one passed as a callback silently returned `undefined`. Both now work.
+- `partitionResult` was quadratic; it is now linear.
+- `createRP` defaulted its status type to `unknown` rather than `PaginateStatus<E>`.
 
 ## 🤝 Contributing
 
 PRs and feedback welcome!  
 If you have suggestions or want to help expand this tool (e.g., monorepo support, GitHub Actions), open an issue or pull request.
+
+```bash
+npm install
+npm run lint     # eslint
+npm run tsc      # typecheck src and tests
+npm test         # node:test suite + type-level regression tests
+npm run build    # dual ESM/CJS output into dist/
+```
+
+Type-level behaviour is tested in `test/types.test-d.ts`, which is never executed —
+it passes by compiling cleanly, and each `@ts-expect-error` there is an assertion.
 
 ---
 

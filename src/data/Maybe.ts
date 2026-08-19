@@ -51,13 +51,14 @@ export function maybe<T>(value: T | null | undefined): Maybe<T> {
 }
 
 /**
- * Extracts the value from a `Maybe<T>`, or returns `null` if it's `Nothing`.
+ * Extracts the value from a `Maybe<T>`, falling back to a default if it's `Nothing`.
  *
  * @param m - A `Maybe<T>` value.
- * @returns The inner value if present, otherwise `null`.
+ * @param defaultValue - The value to return when `m` is `Nothing`.
+ * @returns The inner value if present, otherwise `defaultValue`.
  */
-export function fromMaybe<T>(m: Maybe<T>): T | null {
-  return m == null ? null : m;
+export function fromMaybe<T>(m: Maybe<T>, defaultValue: T): T {
+  return m == null ? defaultValue : m;
 }
 
 /**

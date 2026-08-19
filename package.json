@@ -1,24 +1,54 @@
 {
   "name": "elytra-ts",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "Base/Pure types for your projects.",
-  "scripts": {
-    "build": "tsc",
-    "tsc": "tsc --noEmit",
-    "lint": "eslint . --ext .ts"
+  "keywords": [
+    "fp",
+    "typescript",
+    "strict",
+    "tsc"
+  ],
+  "license": "MIT",
+  "author": "Programever",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/programever/elytra-ts"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "bugs": {
+    "url": "https://github.com/programever/elytra-ts/issues"
+  },
+  "homepage": "https://github.com/programever/elytra-ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
   },
-  "files": ["dist"],
-  "dependencies": {
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
   },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json && node scripts/postbuild.mjs",
+    "tsc": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "lint": "eslint . --ext .ts",
+    "test": "tsc -p tsconfig.test.json && node --test \"dist-test/test/*.test.js\"",
+    "prepublishOnly": "npm run lint && npm run tsc && npm test && npm run build"
+  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.10.5",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
@@ -32,21 +62,5 @@
     "prettier": "^3.2.5",
     "ts-node": "^10.9.1",
     "typescript": "^5.4.0"
-  },
-  "keywords": [
-    "fp",
-    "typescript",
-    "strict",
-    "tsc"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/programever/elytra-ts"
-  },
-  "bugs": {
-    "url": "https://github.com/programever/elytra-ts/issues"
-  },
-  "homepage": "https://github.com/programever/elytra-ts",
-  "author": "Programever",
-  "license": "MIT"
+  }
 }

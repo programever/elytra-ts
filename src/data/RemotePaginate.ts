@@ -61,7 +61,7 @@ export type PaginateStatus<E> =
  * @param meta - Optional metadata.
  * @returns A successful `RemotePaginate`.
  */
-export function createRP<E, T, M = undefined, S = unknown>(
+export function createRP<E, T, M = undefined, S = PaginateStatus<E>>(
   value: T[],
   status: S,
   meta?: M

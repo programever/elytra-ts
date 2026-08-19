@@ -10,14 +10,14 @@ import type { JsonValue } from './JSONValue';
  * Eg. Text256 == Email (if T is the same)
  *
  * Code Example:
- * const emailKey: unique symbol = Symbol();
+ * const emailKey: unique symbol = Symbol(); // Do NOT export this key
  * type Email = Opaque<string, typeof emailKey>;
  * type EmailError = 'INVALID_EMAIL';
  * export function createEmailE(value: string): Result<EmailError, Email> {
  *   const isValid = validateEmail(value);
  *   if (isValid === true) {
  *     const opaqueType = {
- *       [key]: value,
+ *       [emailKey]: value,
  *       unwrap: () => value,
  *       toJSON: () => value
  *     };
@@ -36,7 +36,10 @@ export type Opaque<T, K extends symbol, Unwrapped = T> = {
 };
 
 /**
- * A factory to create opaque type if the wrapped value is a kind of JSONValue
+ * A factory to create opaque type if the wrapped value is a kind of JSONValue.
+ *
+ * `unwrap` and `toJSON` close over the wrapped value, so they remain correct
+ * when detached from the object (destructured, or passed as a callback).
  */
 export function jsonValueCreate<T extends JsonValue, K extends symbol>(
   key: K
@@ -44,12 +47,8 @@ export function jsonValueCreate<T extends JsonValue, K extends symbol>(
   return (value: T) => {
     return {
       [key]: value,
-      unwrap: function () {
-        return this[key];
-      },
-      toJSON: function () {
-        return this[key];
-      }
+      unwrap: () => value,
+      toJSON: () => value
     };
   };
 }
