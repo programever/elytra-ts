@@ -245,33 +245,47 @@ Also fixed, with no API change:
 - `partitionResult` was quadratic; it is now linear.
 - `createRP` defaulted its status type to `unknown` rather than `PaginateStatus<E>`.
 
+## 🧑‍💻 Development
+
+Developed on Node 24 (see `.nvmrc`); the published package supports Node >= 20 and
+CI runs the suite on 20, 22 and 24.
+
+```bash
+nvm use
+npm install
+npm run check   # tsc --noEmit, eslint and the test suite
+npm run build   # dual ESM/CJS output into dist/
+```
+
+Tests use the built-in Node test runner (`node --test`); no extra dependency is
+required. Type-level behaviour is tested in `test/types.test-d.ts`, which is never
+executed — it passes by compiling cleanly, and each `@ts-expect-error` there is an
+assertion.
+
+---
+
+## 🚢 Releasing
+
+Releases are automated. Pushing or merging to `main` runs
+[`.github/workflows/publish.yml`](.github/workflows/publish.yml), which publishes
+**only if the `version` in `package.json` is not already on npm**:
+
+```bash
+npm version patch   # or minor / major
+git push --follow-tags
+```
+
+Requires an npm token with write access to this package, stored as the `NPM_TOKEN`
+secret on the `Production` environment.
+
+---
+
 ## 🤝 Contributing
 
 PRs and feedback welcome!  
 If you have suggestions or want to help expand this tool (e.g., monorepo support, GitHub Actions), open an issue or pull request.
 
-Development uses the Node version in `.nvmrc` (24). The published package
-supports Node >= 20, and CI runs the full suite on 20, 22 and 24 to keep that
-promise honest.
-
-```bash
-nvm use
-npm install
-npm run lint     # eslint
-npm run tsc      # typecheck src and tests
-npm test         # node:test suite + type-level regression tests
-npm run build    # dual ESM/CJS output into dist/
-```
-
-Type-level behaviour is tested in `test/types.test-d.ts`, which is never executed —
-it passes by compiling cleanly, and each `@ts-expect-error` there is an assertion.
-
 ---
-
-## 🚀 Releasing
-
-Releases are automated. Pushing or merging to `main` runs
-[`.github/workflows/publish.yml`](.github/workflows/publish.yml), which:
 
 ## 📜 License
 

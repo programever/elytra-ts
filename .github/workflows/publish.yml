@@ -1,81 +1,102 @@
-name: Release
+name: Publish
 
 on:
   push:
     branches: [main]
 
-# Never let two publishes race; do not cancel a publish in flight.
+# Never let two publishes race; queue them instead of cancelling, so a run that
+# is already talking to the registry is allowed to finish.
 concurrency:
-  group: release
+  group: publish
   cancel-in-progress: false
 
 jobs:
-  release:
+  check:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: check
     runs-on: ubuntu-latest
+    # Named here because the NPM_TOKEN secret lives on this environment.
+    environment:
+      name: Production
+      url: https://www.npmjs.com/package/elytra-ts
     permissions:
-      contents: write # push the version tag and create the release
+      contents: write # push the version tag
       id-token: write # npm provenance
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
+          node-version: '24'
           cache: npm
+          registry-url: https://registry.npmjs.org
 
-      - run: npm ci
-
-      - name: Resolve version and check whether it is already on npm
+      # Every push to main runs this workflow, but only a version bump should
+      # publish. Re-publishing an existing version is rejected by the registry,
+      # so check first and skip quietly instead of failing the run.
+      - name: Decide whether to publish
         id: version
         run: |
-          set -euo pipefail
-          NAME="$(node -p "require('./package.json').name")"
-          VERSION="$(node -p "require('./package.json').version")"
-          echo "name=$NAME"       >> "$GITHUB_OUTPUT"
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-          # `npm view` exits non-zero when the exact version does not exist,
-          # which is the signal that this is a new release.
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::$NAME@$VERSION is already on npm - nothing to release."
+            echo "$NAME@$VERSION is already on npm - nothing to do."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
           else
-            echo "published=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::$NAME@$VERSION is new - releasing."
+            echo "$NAME@$VERSION is new - will publish."
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # `prePublish` is deliberately NOT an npm lifecycle hook (npm only fires
-      # prepublish, prepublishOnly, prepare and prepack), so it is invoked
-      # explicitly here. It runs `check` (typecheck + lint + test) then `build`,
-      # so a broken commit cannot reach npm - and, since dist/ is not committed,
-      # it is what puts the build output in place for `npm publish`.
-      - name: Verify and build
-        if: steps.version.outputs.published == 'false'
-        run: npm run prePublish
+      - name: Install dependencies
+        if: steps.version.outputs.publish == 'true'
+        run: npm ci
+
+      # Built explicitly rather than relying only on a publish hook, so that
+      # dropping that script cannot silently ship an empty package.
+      - name: Build
+        if: steps.version.outputs.publish == 'true'
+        run: npm run build
+
+      # A tarball without the dual builds still publishes successfully and
+      # breaks every consumer, so install the packed tarball into a scratch
+      # project and import it both ways before handing it to the registry.
+      - name: Verify the tarball is consumable as CJS and ESM
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          TARBALL="$(npm pack --silent)"
+          WORKDIR="$(mktemp -d)"
+          mv "$TARBALL" "$WORKDIR/"
+          cd "$WORKDIR"
+          npm init -y >/dev/null
+          npm install "./$TARBALL" --silent
+          node -e "
+            const { ok, partitionResult } = require('elytra-ts');
+            if (partitionResult([ok(1)]).oks[0] !== 1) throw new Error('CJS require broken');
+            console.log('CJS require OK');
+          "
+          node --input-type=module -e "
+            import { ok, partitionResult } from 'elytra-ts';
+            if (partitionResult([ok(1)]).oks[0] !== 1) throw new Error('ESM import broken');
+            console.log('ESM import OK');
+          "
 
       - name: Publish to npm
-        if: steps.version.outputs.published == 'false'
+        if: steps.version.outputs.publish == 'true'
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Tag the release
-        if: steps.version.outputs.published == 'false'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+        if: steps.version.outputs.publish == 'true'
         run: |
-          set -euo pipefail
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "v$VERSION" -m "v$VERSION"
-          git push origin "v$VERSION"
-
-      - name: Create GitHub release
-        if: steps.version.outputs.published == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: gh release create "v$VERSION" --title "v$VERSION" --generate-notes
+          TAG="v${{ steps.version.outputs.version }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists - skipping."
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi

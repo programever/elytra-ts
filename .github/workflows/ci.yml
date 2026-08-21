@@ -4,60 +4,22 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call:
 
 jobs:
-  verify:
+  check:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        # 24 is the toolchain (.nvmrc); 20 and 22 are floors we promise
-        # consumers via the "engines" field, so they must keep passing.
-        node: [20, 22, 24]
-    name: verify (node ${{ matrix.node }})
+        node-version: ['20', '22', '24']
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: ${{ matrix.node-version }}
           cache: npm
-
       - run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck (src + tests)
-        run: npm run tsc
-
-      - name: Test
-        run: npm test
-
-      - name: Build
-        run: npm run build
-
-      - name: Verify the packed tarball is consumable
-        run: |
-          set -euo pipefail
-          TARBALL="$(npm pack --silent)"
-          WORKDIR="$(mktemp -d)"
-          mv "$TARBALL" "$WORKDIR/"
-          cd "$WORKDIR"
-          npm init -y >/dev/null
-          npm install "./$TARBALL" --silent
-          node -e "
-            const { ok, partitionResult } = require('elytra-ts');
-            if (partitionResult([ok(1)]).oks[0] !== 1) throw new Error('CJS require broken');
-            console.log('CJS require OK');
-          "
-          node --input-type=module -e "
-            import { ok, partitionResult } from 'elytra-ts';
-            if (partitionResult([ok(1)]).oks[0] !== 1) throw new Error('ESM import broken');
-            console.log('ESM import OK');
-          "
+      - run: npm run tsc
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
