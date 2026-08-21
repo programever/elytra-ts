@@ -250,7 +250,12 @@ Also fixed, with no API change:
 PRs and feedback welcome!  
 If you have suggestions or want to help expand this tool (e.g., monorepo support, GitHub Actions), open an issue or pull request.
 
+Development uses the Node version in `.nvmrc` (24). The published package
+supports Node >= 20, and CI runs the full suite on 20, 22 and 24 to keep that
+promise honest.
+
 ```bash
+nvm use
 npm install
 npm run lint     # eslint
 npm run tsc      # typecheck src and tests
@@ -262,6 +267,11 @@ Type-level behaviour is tested in `test/types.test-d.ts`, which is never execute
 it passes by compiling cleanly, and each `@ts-expect-error` there is an assertion.
 
 ---
+
+## 🚀 Releasing
+
+Releases are automated. Pushing or merging to `main` runs
+[`.github/workflows/publish.yml`](.github/workflows/publish.yml), which:
 
 ## 📜 License
 

@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# Never let two publishes race; do not cancel a publish in flight.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the version tag and create the release
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci
+
+      - name: Resolve version and check whether it is already on npm
+        id: version
+        run: |
+          set -euo pipefail
+          NAME="$(node -p "require('./package.json').name")"
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "name=$NAME"       >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # `npm view` exits non-zero when the exact version does not exist,
+          # which is the signal that this is a new release.
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$NAME@$VERSION is already on npm - nothing to release."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$NAME@$VERSION is new - releasing."
+          fi
+
+      # `prePublish` is deliberately NOT an npm lifecycle hook (npm only fires
+      # prepublish, prepublishOnly, prepare and prepack), so it is invoked
+      # explicitly here. It runs `check` (typecheck + lint + test) then `build`,
+      # so a broken commit cannot reach npm - and, since dist/ is not committed,
+      # it is what puts the build output in place for `npm publish`.
+      - name: Verify and build
+        if: steps.version.outputs.published == 'false'
+        run: npm run prePublish
+
+      - name: Publish to npm
+        if: steps.version.outputs.published == 'false'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Tag the release
+        if: steps.version.outputs.published == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub release
+        if: steps.version.outputs.published == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release create "v$VERSION" --title "v$VERSION" --generate-notes

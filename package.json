@@ -39,18 +39,18 @@
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json && node scripts/postbuild.mjs",
     "tsc": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint . --ext .ts",
-    "test": "tsc -p tsconfig.test.json && node --test \"dist-test/test/*.test.js\"",
-    "prepublishOnly": "npm run lint && npm run tsc && npm test && npm run build"
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
+    "check": "npm run tsc && npm run lint && npm run test",
+    "prePublish": "npm run check && npm run build"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@types/node": "^20.10.5",
+    "@types/node": "^24.13.3",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
     "eslint": "^8.56.0",
