@@ -1,4 +1,4 @@
-import { Maybe, just, nothing } from './Maybe';
+import type { Maybe } from './Maybe';
 
 /**
  * Represents the result of a computation that can either succeed (`Ok<T>`)
@@ -80,7 +80,7 @@ export function mapResultErr<E1, E2, T>(result: Result<E1, T>, fn: (e: E1) => E2
  * @returns `just(value)` if `Ok`, otherwise `nothing()`.
  */
 export function fromOk<E, T>(result: Result<E, T>): Maybe<T> {
-  return result._t === 'Ok' ? just(result.value) : nothing();
+  return result._t === 'Ok' ? result.value : null;
 }
 
 /**
@@ -90,7 +90,84 @@ export function fromOk<E, T>(result: Result<E, T>): Maybe<T> {
  * @returns `just(error)` if `Err`, otherwise `nothing()`.
  */
 export function fromErr<E, T>(result: Result<E, T>): Maybe<E> {
-  return result._t === 'Err' ? just(result.error) : nothing();
+  return result._t === 'Err' ? result.error : null;
+}
+
+/**
+ * Chains a computation that itself returns a `Result`, flattening the nesting.
+ *
+ * The error type widens to include the callback's error type, so steps with
+ * different failure modes can be chained without an explicit `mapResultErr`.
+ *
+ * @param result - The original `Result`.
+ * @param fn - A function producing the next `Result` from the success value.
+ * @returns The callback's `Result` if `Ok`, otherwise the original `Err`.
+ */
+export function andThenResult<E, E2, T, U>(
+  result: Result<E, T>,
+  fn: (a: T) => Result<E2, U>
+): Result<E | E2, U> {
+  return result._t === 'Ok' ? fn(result.value) : result;
+}
+
+/**
+ * Collapses a `Result` into a single value by handling both cases.
+ *
+ * @param result - The input `Result`.
+ * @param onErr - Handler for the `Err` case.
+ * @param onOk - Handler for the `Ok` case.
+ * @returns The value produced by whichever handler ran.
+ */
+export function foldResult<E, T, R>(
+  result: Result<E, T>,
+  onErr: (e: E) => R,
+  onOk: (t: T) => R
+): R {
+  return result._t === 'Ok' ? onOk(result.value) : onErr(result.error);
+}
+
+/**
+ * Sequences an array of `Result`s, short-circuiting on the first `Err`.
+ *
+ * Use `partitionResult` instead when every error should be collected.
+ *
+ * @param results - The input array of `Result<E, T>`.
+ * @returns `Ok` of all success values in order, or the first `Err` encountered.
+ */
+export function allResult<E, T>(results: ReadonlyArray<Result<E, T>>): Result<E, T[]> {
+  const values: T[] = [];
+
+  for (const result of results) {
+    if (result._t === 'Err') {
+      return result;
+    }
+    values.push(result.value);
+  }
+
+  return ok(values);
+}
+
+/**
+ * Runs a function that may throw, capturing the outcome as a `Result`.
+ *
+ * Without `onError`, the thrown value is returned as-is (typed `unknown`);
+ * pass `onError` to normalise it into a known error type at the boundary.
+ *
+ * @param fn - A function that may throw.
+ * @param onError - Optional mapping from the thrown value to the error type.
+ * @returns `Ok` with the returned value, or `Err` with the thrown value.
+ */
+export function tryCatch<T>(fn: () => T): Result<unknown, T>;
+export function tryCatch<E, T>(fn: () => T, onError: (e: unknown) => E): Result<E, T>;
+export function tryCatch<E, T>(
+  fn: () => T,
+  onError?: (e: unknown) => E
+): Result<E | unknown, T> {
+  try {
+    return ok(fn());
+  } catch (e) {
+    return err(onError === undefined ? e : onError(e));
+  }
 }
 
 /**

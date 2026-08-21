@@ -1,4 +1,4 @@
-import type { Result } from './Result';
+import { Result, ok, err } from './Result';
 
 /**
  * Represents an nullable value.
@@ -80,4 +80,71 @@ export function fromResult<E, T>(m: Result<E, T>): T | null {
  */
 export function mapMaybe<T, U>(m: Maybe<T>, fn: (a: T) => U): Maybe<U> {
   return m == null ? nothing() : fn(m);
+}
+
+/**
+ * Chains a computation that itself returns a `Maybe`, flattening the nesting.
+ *
+ * @param m - The input `Maybe<T>`.
+ * @param fn - A function producing the next `Maybe` from the present value.
+ * @returns The callback's `Maybe` if present, otherwise `Nothing`.
+ */
+export function andThenMaybe<T, U>(m: Maybe<T>, fn: (a: T) => Maybe<U>): Maybe<U> {
+  return m == null ? nothing() : fn(m);
+}
+
+/**
+ * Collapses a `Maybe` into a single value by handling both cases.
+ *
+ * @param m - The input `Maybe<T>`.
+ * @param onNothing - Handler for the absent case.
+ * @param onJust - Handler for the present case.
+ * @returns The value produced by whichever handler ran.
+ */
+export function foldMaybe<T, R>(m: Maybe<T>, onNothing: () => R, onJust: (a: T) => R): R {
+  return m == null ? onNothing() : onJust(m);
+}
+
+/**
+ * Returns the first `Maybe` if present, otherwise the fallback `Maybe`.
+ *
+ * Unlike `fromMaybe`, the fallback may itself be absent.
+ *
+ * @param m - The preferred `Maybe<T>`.
+ * @param fallback - The `Maybe<T>` to use when `m` is `Nothing`.
+ * @returns `m` if present, otherwise `fallback`.
+ */
+export function orElseMaybe<T>(m: Maybe<T>, fallback: Maybe<T>): Maybe<T> {
+  return m == null ? fallback : m;
+}
+
+/**
+ * Converts a `Maybe<T>` into a `Result<E, T>`, supplying the error for the absent case.
+ *
+ * The inverse of `fromResult`.
+ *
+ * @param m - The input `Maybe<T>`.
+ * @param error - The error to use when `m` is `Nothing`.
+ * @returns `Ok` with the value if present, otherwise `Err` with `error`.
+ */
+export function toResult<E, T>(m: Maybe<T>, error: E): Result<E, T> {
+  return m == null ? err(error) : ok(m);
+}
+
+/**
+ * Drops the absent entries from an array of `Maybe`s, keeping order.
+ *
+ * @param ms - The input array of `Maybe<T>`.
+ * @returns The present values, narrowed to `T`.
+ */
+export function catMaybes<T>(ms: ReadonlyArray<Maybe<T>>): T[] {
+  const values: T[] = [];
+
+  for (const m of ms) {
+    if (m != null) {
+      values.push(m);
+    }
+  }
+
+  return values;
 }

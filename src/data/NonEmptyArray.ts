@@ -1,3 +1,5 @@
+import type { Maybe } from './Maybe';
+
 /**
  * A tuple-like data structure that guarantees at least one item.
  *
@@ -17,6 +19,19 @@ export type NonEmptyArray<T> = {
  */
 export function nonEmptyArray<T>(first: T, rest: readonly T[] = []): NonEmptyArray<T> {
   return { first, rest };
+}
+
+/**
+ * Attempts to build a `NonEmptyArray<T>` from a standard array.
+ *
+ * @param items - The input array.
+ * @returns A `NonEmptyArray<T>` if the array has at least one element, otherwise `Nothing`.
+ */
+export function fromArrayNEA<T>(items: readonly T[]): Maybe<NonEmptyArray<T>> {
+  const [first, ...rest] = items;
+  // Guarded by the length check, so `first` is always present; the cast is
+  // needed only because `noUncheckedIndexedAccess` cannot prove it.
+  return items.length === 0 ? null : { first: first as T, rest };
 }
 
 /**

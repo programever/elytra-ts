@@ -43,6 +43,18 @@ const upper = mapMaybe(name, (s) => s.toUpperCase());
 const display = fromMaybe(upper, 'ANONYMOUS'); // string, never null
 ```
 
+Chain, fold, and convert:
+
+```ts
+import { andThenMaybe, foldMaybe, orElseMaybe, toResult, catMaybes } from 'elytra-ts';
+
+const userId = andThenMaybe(session, (s) => s.userId); // Maybe<Maybe<T>> is flattened
+const label = foldMaybe(userId, () => 'guest', (id) => `user ${id}`);
+const picked = orElseMaybe(fromCache, fromDefaults); // fallback may itself be null
+const required = toResult(userId, 'NOT_LOGGED_IN'); // Result<'NOT_LOGGED_IN', UserId>
+const present = catMaybes([1, null, 2]); // [1, 2]
+```
+
 ---
 
 ### 🔹 `Result<E, T>`
@@ -60,6 +72,20 @@ function parseJson(s: string): Result<string, unknown> {
 }
 ```
 
+Chain fallible steps, fold, sequence, and wrap throwing code:
+
+```ts
+import { andThenResult, foldResult, allResult, tryCatch } from 'elytra-ts';
+
+// The error type widens to the union of both steps: Result<'PARSE' | 'RANGE', number>
+const age = andThenResult(parseInt10(input), checkRange);
+const message = foldResult(age, (e) => `invalid: ${e}`, (n) => `age ${n}`);
+
+const ages = allResult([age1, age2, age3]); // Ok<number[]>, or the first Err
+const parsed = tryCatch(() => JSON.parse(raw)); // Result<unknown, any>
+const typed = tryCatch(() => JSON.parse(raw), String); // Result<string, any>
+```
+
 ---
 
 ### 🔹 `RemoteData<E, T>`
@@ -70,6 +96,23 @@ import { RemoteData, loading, mapRD } from 'elytra-ts';
 
 const users: RemoteData<string, User[]> = loading();
 const names = mapRD(users, (us) => us.map((u) => u.name)); // (data, fn)
+```
+
+Lift a settled request, combine two requests, fold for rendering:
+
+```ts
+import { fromResultRD, combineRD, andThenRD, foldRD } from 'elytra-ts';
+
+const users = fromResultRD(await fetchUsers()); // Ok -> Success, Err -> Failure
+const both = combineRD(users, teams); // RemoteData<E, [User[], Team[]]>
+// Success only when both are; otherwise the first Failure, then Loading, then NotAsked.
+
+const view = foldRD(both, {
+  notAsked: () => 'Idle',
+  loading: () => 'Loading...',
+  failure: (e) => `Error: ${e}`,
+  success: ([us, ts]) => `${us.length} users in ${ts.length} teams`
+});
 ```
 
 ---
@@ -126,6 +169,8 @@ import { nonEmptyArray, mapNEA, toArrayNEA } from 'elytra-ts';
 const nea = nonEmptyArray(1, [2, 3]);
 const doubled = mapNEA(nea, (x) => x * 2); // { first: 2, rest: [4, 6] }
 toArrayNEA(doubled); // [2, 4, 6]
+
+fromArrayNEA([1, 2]); // Maybe<NonEmptyArray<number>> — null for []
 ```
 
 ---
@@ -177,16 +222,19 @@ const emailE = createEmailE('validEmail@example.com')
 import {
   // Maybe
   Maybe, Just, Nothing, just, nothing, maybe,
-  fromMaybe, fromResult, mapMaybe,
+  fromMaybe, fromResult, mapMaybe, andThenMaybe, foldMaybe,
+  orElseMaybe, toResult, catMaybes,
 
   // Result
   Result, Ok, Err, ok, err, mapResult, mapResultErr,
-  fromOk, fromErr, partitionResult,
+  fromOk, fromErr, partitionResult, andThenResult, foldResult,
+  allResult, tryCatch,
 
   // RemoteData
-  RemoteData, NotAsked, Loading, Failure, Success,
+  RemoteData, NotAsked, Loading, Failure, Success, RemoteDataHandlers,
   notAsked, loading, failure, success, mapRD,
-  mapRDError, fromFailure, fromSuccess,
+  mapRDError, fromFailure, fromSuccess, andThenRD, foldRD,
+  fromResultRD, combineRD,
 
   // RemotePaginate
   RemotePaginate, Paginate, PaginateStatus,
@@ -200,7 +248,7 @@ import {
   Tuple, tuple, fst, snd, mapFst, mapSnd,
 
   // NonEmptyArray
-  NonEmptyArray, nonEmptyArray, toArrayNEA, mapNEA, lastNEA,
+  NonEmptyArray, nonEmptyArray, fromArrayNEA, toArrayNEA, mapNEA, lastNEA,
   lengthNEA, headNEA, tailNEA, appendNEA, prependNEA,
 
   // JSONValue

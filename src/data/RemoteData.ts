@@ -1,3 +1,6 @@
+import type { Result } from './Result';
+import type { Tuple } from './Tuple';
+
 /**
  * Represents the possible states of a remote data request.
  *
@@ -108,4 +111,85 @@ export function fromFailure<E, T>(remoteData: RemoteData<E, T>): E | null {
  */
 export function fromSuccess<E, T>(remoteData: RemoteData<E, T>): T | null {
   return remoteData._t === 'Success' ? remoteData.data : null;
+}
+
+/**
+ * Chains a computation that itself returns a `RemoteData`, flattening the nesting.
+ *
+ * The error type widens to include the callback's error type.
+ *
+ * @param remoteData - The input `RemoteData`.
+ * @param fn - A function producing the next `RemoteData` from the success value.
+ * @returns The callback's `RemoteData` if `Success`, otherwise the original state.
+ */
+export function andThenRD<E, E2, T, U>(
+  remoteData: RemoteData<E, T>,
+  fn: (t: T) => RemoteData<E2, U>
+): RemoteData<E | E2, U> {
+  return remoteData._t === 'Success' ? fn(remoteData.data) : remoteData;
+}
+
+/**
+ * Handlers for each `RemoteData` state, as consumed by `foldRD`.
+ */
+export type RemoteDataHandlers<E, T, R> = {
+  readonly notAsked: () => R;
+  readonly loading: () => R;
+  readonly failure: (error: E) => R;
+  readonly success: (data: T) => R;
+};
+
+/**
+ * Collapses a `RemoteData` into a single value by handling all four states.
+ *
+ * @param remoteData - The input `RemoteData`.
+ * @param handlers - One handler per state; all four are required.
+ * @returns The value produced by the handler for the current state.
+ */
+export function foldRD<E, T, R>(
+  remoteData: RemoteData<E, T>,
+  handlers: RemoteDataHandlers<E, T, R>
+): R {
+  switch (remoteData._t) {
+    case 'NotAsked':
+      return handlers.notAsked();
+    case 'Loading':
+      return handlers.loading();
+    case 'Failure':
+      return handlers.failure(remoteData.error);
+    case 'Success':
+      return handlers.success(remoteData.data);
+  }
+}
+
+/**
+ * Lifts a settled `Result` into a `RemoteData`.
+ *
+ * @param result - The outcome of a completed request.
+ * @returns `Success` if `Ok`, otherwise `Failure`.
+ */
+export function fromResultRD<E, T>(result: Result<E, T>): RemoteData<E, T> {
+  return result._t === 'Ok' ? success(result.value) : failure(result.error);
+}
+
+/**
+ * Combines two `RemoteData`s into one holding both values.
+ *
+ * The combined state is `Success` only when both are. Otherwise the first
+ * `Failure` wins (left-biased), then `Loading`, then `NotAsked` — so an error
+ * is surfaced even while the other request is still in flight.
+ *
+ * @param a - The first `RemoteData`.
+ * @param b - The second `RemoteData`.
+ * @returns A `RemoteData` of the pair `[a, b]`.
+ */
+export function combineRD<E, A, B>(
+  a: RemoteData<E, A>,
+  b: RemoteData<E, B>
+): RemoteData<E, Tuple<A, B>> {
+  if (a._t === 'Success' && b._t === 'Success') return success([a.data, b.data]);
+  if (a._t === 'Failure') return a;
+  if (b._t === 'Failure') return b;
+  if (a._t === 'Loading' || b._t === 'Loading') return loading();
+  return notAsked();
 }
